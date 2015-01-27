@@ -126,34 +126,36 @@ try
                 $hostname         = 'test.com'
                 $existingHostname = 'other.com'
                 $comment          = 'I am a comment'
-                $secondLine       = '5.6.7.8 someotherhostname.org # second comment'
+                $firstLine        = '5.6.7.8 someotherhostname.org # second comment'
                 $thirdLine        = ' # just a comment'
 
-                Set-Content TestDrive:\hosts "${indent}$ip $existingHostname # $comment",$secondLine,$thirdLine
+                Set-Content TestDrive:\hosts $firstLine, "${indent}$ip $existingHostname # $comment", $thirdLine
 
                 & "Set-${prefix}TargetResource" -IPAddress $ip -HostName $hostname -Ensure 'Present'
 
                 $parameterFilter = {
                     $Value.Count -eq 3 -and
-                    $Value[1] -eq $secondLine -and
+                    $Value[0] -eq $firstLine -and
                     $value[2] -eq $thirdLine -and
-                    $Value[0] -eq "${indent}$ip $existingHostname $hostname # $comment"
+                    $Value[1] -eq "${indent}$ip $existingHostname $hostname # $comment"
                 }
 
                 Assert-MockCalled -ModuleName HostsFile -Scope It Set-Content -ParameterFilter $parameterFilter
             }
 
             It 'Properly handles malformed lines that contain an IP address but no hostnames' {
-                $ip               = '1.2.3.4'
-                $hostname         = 'test.com'
-
-                Setup -File hosts "$ip"
+                $ip          = '1.2.3.4'
+                $hostname    = 'test.com'
+                $secondLine  = '5.6.7.8 second.line.com'
+                
+                Set-Content TestDrive:\hosts "$ip", $secondLine
 
                 & "Set-${prefix}TargetResource" -IPAddress $ip -HostName $hostname -Ensure 'Present'
 
                 $parameterFilter = {
-                    $Value.Count -eq 1 -and
-                    $Value[0] -eq "$ip $hostname"
+                    $Value.Count -eq 2 -and
+                    $Value[0] -eq "$ip $hostname" -and 
+                    $Value[1] -eq $secondLine
                 }
 
                 Assert-MockCalled -ModuleName HostsFile -Scope It Set-Content -ParameterFilter $parameterFilter                

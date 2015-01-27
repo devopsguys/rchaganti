@@ -73,9 +73,6 @@ function Set-TargetResource {
         $Ensure = 'Present'
     )
 
-    $content = @(Get-Content $script:HostsFilePath)
-    $length = $content.Length
-
     try {
         if ($Ensure -eq 'Present') {
             Write-Verbose ($localizedData.CreatingHostsFileEntry -f $hostName, $ipAddress)
@@ -165,11 +162,14 @@ function AddHostsEntry {
         [string] $HostName
     )
 
+    $content = @(Get-Content $script:HostsFilePath)
+    $length = $content.Length
+
     $foundMatch = $false
     $dirty = $false
 
     for ($i = 0; $i -lt $length; $i++) {
-        $parsed = ParseEntryLine -Line $content[0]
+        $parsed = ParseEntryLine -Line $content[$i]
 
         if ($parsed.IPAddress -ne $ipAddress) { continue }
         
@@ -200,11 +200,14 @@ function RemoveHostsEntry {
         [string] $HostName
     )
 
+    $content = @(Get-Content $script:HostsFilePath)
+    $length = $content.Length
+
     $placeholder = New-Object psobject
     $dirty = $false
 
     for ($i = 0; $i -lt $length; $i++) {
-        $parsed = ParseEntryLine -Line $content[0]
+        $parsed = ParseEntryLine -Line $content[$i]
 
         if ($parsed.IPAddress -ne $IPAddress) { continue }
         
@@ -242,14 +245,15 @@ function ParseEntryLine {
                  '\s+' +
                  '(?<hostNames>[^#]*)' +
                  '(?:#\s*(?<comment>.*))?' +
-             ')' +
+             ')?' +
+             '\s*' +
              '$'
 
     if ($line -match $regex)
     {
         $indent    = $matches['indent']
         $ipAddress = $matches['ipAddress']
-        $hostnames = $matches['hostNames'].Trim() -split '\s+'
+        $hostnames = $matches['hostNames'] -split '\s+' -match '\S'
         $comment   = $matches['comment']
     }
 
